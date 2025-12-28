@@ -1,0 +1,27 @@
+services:
+  mariadb:
+    build: ./requirements/srcs
+    env_file:
+      - .env
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+    secrets:
+      - db_psd
+      - db_root_psd
+      - my_cred
+
+    volumes:
+      - /home/inicoara/data: /var/lib/mysql
+
+
+secrets:
+  my_cred:
+    file: ./secrets/credentials.txt
+  db_psd:
+    file: ./db_password.txt
+  db_root_psd:
+    file: ./secret/db_root_password.txt
+
+network:
+  - "custom"
