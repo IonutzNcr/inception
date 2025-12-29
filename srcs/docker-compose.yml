@@ -1,6 +1,6 @@
 services:
   mariadb:
-    build: ./requirements/srcs
+    build: ./requirements/mariadb
     env_file:
       - .env
     environment:
@@ -12,16 +12,14 @@ services:
       - my_cred
 
     volumes:
-      - /home/inicoara/data: /var/lib/mysql
+      - /home/inicoara/data:/var/lib/mysql
 
 
 secrets:
   my_cred:
-    file: ./secrets/credentials.txt
+    file: ../secrets/credentials.txt
   db_psd:
-    file: ./db_password.txt
+    file: ../secrets/db_password.txt
   db_root_psd:
-    file: ./secret/db_root_password.txt
+    file: ../secrets/db_root_password.txt
 
-network:
-  - "custom"
