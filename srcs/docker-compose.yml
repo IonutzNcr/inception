@@ -3,26 +3,64 @@ services:
     build: ./requirements/mariadb
     env_file:
       - .env
-    environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
     secrets:
       - db_psd
-      - db_root_psd
-      - my_cred
+      - db_user_psd
     networks:
       - custom
     volumes:
-      - /home/inicoara/data:/var/lib/mysql
+      - db_data:/var/lib/mysql
+  nginx:
+    build: ./requirements/nginx
+    networks:
+      - custom
+    ports:
+      - "443:443"
+    depends_on:
+      - wordpress
+    volumes:
+      - wp_data:/var/www/html:ro
+  wordpress:
+    build: ./requirements/wordpress
+    networks:
+      - custom
+    volumes:
+      - wp_data:/var/www/html
+    secrets:
+      - db_user_psd
+      - wp_admin_psd
+      - wp_user_psd
+    env_file:
+      - .env
+    depends_on:
+      - mariadb
 
 networks:
   custom:
     driver: bridge
+
 secrets:
-  my_cred:
-    file: ../secrets/credentials.txt
   db_psd:
     file: ../secrets/db_password.txt
-  db_root_psd:
-    file: ../secrets/db_root_password.txt
+  db_user_psd:
+    file: ../secrets/db_user_password.txt
+  wp_user_psd:
+    file: ../secrets/wp_user_password.txt
+  wp_admin_psd:
+    file: ../secrets/wp_admin_password.txt
+
+volumes:
+  db_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/inicoara/data
+
+  wp_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/inicoara/data
 
