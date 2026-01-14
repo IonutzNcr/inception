@@ -10,11 +10,14 @@ services:
       - db_psd
       - db_root_psd
       - my_cred
-
+    networks:
+      - custom
     volumes:
       - /home/inicoara/data:/var/lib/mysql
 
-
+networks:
+  custom:
+    driver: bridge
 secrets:
   my_cred:
     file: ../secrets/credentials.txt
