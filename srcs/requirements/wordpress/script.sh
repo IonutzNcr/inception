@@ -7,16 +7,6 @@ WP_ADMIN_PASSWORD="$(cat /run/secrets/wp_admin_psd)"
 WP_USER_PASSWORD="$(cat /run/secrets/wp_user_psd)"
 
 # (optionnel mais utile) éviter boucle infinie
-MAX_TRIES=60
-i=0
-until mariadb-admin ping --ssl=0 -h"$MYSQL_HOST" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --silent; do
-  i=$((i + 1))
-  if [ "$i" -ge "$MAX_TRIES" ]; then
-    echo "MariaDB not reachable after $MAX_TRIES seconds"
-    exit 1
-  fi
-  sleep 1
-done
 
 cd /var/www/html
 
