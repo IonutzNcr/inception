@@ -24,6 +24,7 @@ if [ ! -f wp-config.php ]; then
     --dbpass="$MYSQL_PASSWORD" \
     --dbhost="$MYSQL_HOST" \
     --allow-root
+   
 fi
 
 # installer WordPress

@@ -49,7 +49,9 @@ wait "$pid" 2>/dev/null || true
 
 
 # relancer en foreground (PID 1)
-exec mariadbd --user=mysql --datadir="$DATADIR" --port=3306 --bind-address=0.0.0.0
+exec mariadbd --user=mysql --datadir="$DATADIR" \
+  --port=3306 --bind-address=0.0.0.0 \
+  --ssl=OFF
 
 
 
