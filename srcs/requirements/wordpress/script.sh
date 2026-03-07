@@ -8,6 +8,24 @@ WP_USER_PASSWORD="$(cat /run/secrets/wp_user_psd)"
 
 # (optionnel mais utile) éviter boucle infinie
 
+# Wait for MariaDB to be ready
+echo "Waiting for MariaDB to be ready..."
+CONNECTED=0
+for i in $(seq 1 30); do
+  if mariadb-admin ping -h"$MYSQL_HOST" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --skip-ssl --silent 2>/dev/null; then
+    echo "MariaDB is ready!"
+    CONNECTED=1
+    break
+  fi
+  echo "Attempt $i: MariaDB not ready yet..."
+  sleep 2
+done
+
+if [ "$CONNECTED" -eq 0 ]; then
+  echo "ERROR: Could not connect to MariaDB after 30 attempts!"
+  exit 1
+fi
+
 cd /var/www/html
 
 # Si /var/www/html est un volume vide au 1er run, re-télécharger WP
@@ -37,6 +55,10 @@ if ! wp core is-installed --allow-root; then
     --admin_email="$WP_ADMIN_EMAIL" \
     --skip-email \
     --allow-root
+else
+  # Si WordPress est déjà installé, mettre à jour l'URL
+  wp option update home "$WP_URL" --allow-root
+  wp option update siteurl "$WP_URL" --allow-root
 fi
 
 # Créer le 2e user WordPress (exigé par le sujet)
@@ -57,4 +79,16 @@ fi
 # permissions finales
 chown -R www-data:www-data /var/www/html
 
-exec php-fpm81 -F
+# Find the correct php-fpm binary
+PHP_FPM=$(which php-fpm* 2>/dev/null | head -n 1)
+if [ -z "$PHP_FPM" ]; then
+  PHP_FPM=$(ls /usr/sbin/php-fpm* 2>/dev/null | head -n 1)
+fi
+
+if [ -z "$PHP_FPM" ]; then
+  echo "Error: php-fpm not found!"
+  exit 1
+fi
+
+echo "Starting PHP-FPM: $PHP_FPM"
+exec "$PHP_FPM" -F

@@ -7,7 +7,7 @@ RUN apk add --no-cache nginx \
  && chown -R www-data:www-data /run/nginx /var/www /var/lib/nginx
 
 COPY ./nginx.conf /etc/nginx/nginx.conf
-COPY ./localhost-key.pem /etc/nginx/localhost-key.pem
-COPY ./localhost.pem /etc/nginx/localhost.pem
+COPY ./inicoara.42.fr-key.pem /etc/nginx/inicoara.42.fr-key.pem
+COPY ./inicoara.42.fr.pem /etc/nginx/inicoara.42.fr.pem
 
 ENTRYPOINT ["nginx", "-g", "daemon off;"]

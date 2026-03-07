@@ -1,0 +1,24 @@
+secrets/
+*.txt
+.env
+
+# Certificats SSL
+*.pem
+*.key
+*.crt
+*.csr
+
+# Données des volumes
+data/
+
+# Docker
+.docker/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Éditeur
+.vscode/
+.idea/
+*.swp

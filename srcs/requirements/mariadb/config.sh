@@ -14,37 +14,59 @@ chown -R mysql:mysql "$DATADIR" "$RUNDIR"
 if [ ! -d "$DATADIR/mysql" ]; then
   echo "Initializing MariaDB data directory..."
   mariadb-install-db --user=mysql --datadir="$DATADIR"
+  FIRST_RUN=1
+else
+  echo "MariaDB data directory already exists"
+  FIRST_RUN=0
 fi
 
 # démarrer le serveur en background pour init
-mariadbd --user=mysql --datadir="$DATADIR" --socket="$SOCK" &
+mariadbd --user=mysql --datadir="$DATADIR" --socket="$SOCK" --skip-networking &
 pid="$!"
 
-# attendre que le serveur réponde
-for i in 1 2 3 4 5 6 7 8 9 10; do
-  mariadb-admin --socket="$SOCK" ping >/dev/null 2>&1 && break
+# attendre que le socket existe et que le serveur soit prêt
+echo "Waiting for MariaDB socket..."
+for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+  if [ -S "$SOCK" ]; then
+    echo "Socket found! Waiting for server readiness..."
+    sleep 3
+    # Test if server is ready
+    if mariadb -h localhost --socket="$SOCK" --skip-ssl -e "SELECT 1;" >/dev/null 2>&1; then
+      echo "MariaDB server is ready!"
+      break
+    fi
+  fi
+  echo "Attempt $i: waiting for server..."
   sleep 1
 done
 
-# si toujours pas prêt, on échoue avec logs
-mariadb-admin --socket="$SOCK" ping >/dev/null 2>&1 || {
-  echo "MariaDB did not start"
+# vérifier que le socket existe
+if [ ! -S "$SOCK" ]; then
+  echo "MariaDB socket not created after 10 seconds"
   exit 1
-}
+fi
 
-# Create and check users and database
-mariadb --socket="$SOCK" -e "CREATE DATABASE IF NOT EXISTS $MARIA_DATABASE ;"
-mariadb --socket="$SOCK" -e "SHOW DATABASES;"
-mariadb --socket="$SOCK" -e "CREATE USER IF NOT EXISTS '$ADMIN_NAME'@'%' IDENTIFIED BY '$PASSWORD';"
-mariadb --socket="$SOCK" -e "GRANT ALL PRIVILEGES ON $MARIA_DATABASE.* TO '$ADMIN_NAME'@'%' ;"
-mariadb --socket="$SOCK" -e "CREATE USER IF NOT EXISTS '$MYSQL_USER'@'%' IDENTIFIED BY '$USER_PASSWORD';"
-mariadb --socket="$SOCK" -e "GRANT ALL PRIVILEGES ON $MARIA_DATABASE.* TO '$MYSQL_USER'@'%' ;"
+echo "Setting up database and users..."
 
-mariadb --socket="$SOCK" -e "SELECT User, Host FROM mysql.user;"
+# Always ensure database and users exist with correct passwords
+mariadb -h localhost --socket="$SOCK" --skip-ssl -e "CREATE DATABASE IF NOT EXISTS $MARIA_DATABASE ;"
+
+# Drop and recreate users to ensure correct passwords
+mariadb -h localhost --socket="$SOCK" --skip-ssl -e "DROP USER IF EXISTS '$ADMIN_NAME'@'%';"
+mariadb -h localhost --socket="$SOCK" --skip-ssl -e "CREATE USER '$ADMIN_NAME'@'%' IDENTIFIED BY '$PASSWORD';"
+mariadb -h localhost --socket="$SOCK" --skip-ssl -e "GRANT ALL PRIVILEGES ON $MARIA_DATABASE.* TO '$ADMIN_NAME'@'%' ;"
+
+mariadb -h localhost --socket="$SOCK" --skip-ssl -e "DROP USER IF EXISTS '$MYSQL_USER'@'%';"
+mariadb -h localhost --socket="$SOCK" --skip-ssl -e "CREATE USER '$MYSQL_USER'@'%' IDENTIFIED BY '$USER_PASSWORD';"
+mariadb -h localhost --socket="$SOCK" --skip-ssl -e "GRANT ALL PRIVILEGES ON $MARIA_DATABASE.* TO '$MYSQL_USER'@'%' ;"
+
+mariadb -h localhost --socket="$SOCK" --skip-ssl -e "FLUSH PRIVILEGES;"
+
+echo "Database setup complete!"
 
 
 # arrêter le serveur background
-mariadb-admin --socket="$SOCK" shutdown
+kill "$pid"
 wait "$pid" 2>/dev/null || true
 
 

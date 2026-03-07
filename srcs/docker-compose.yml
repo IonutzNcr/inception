@@ -1,5 +1,6 @@
 services:
   mariadb:
+    image: mariadb:local
     build: ./requirements/mariadb
     env_file:
       - .env
@@ -10,7 +11,15 @@ services:
       - custom
     volumes:
       - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "--skip-ssl"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+    restart: always
   nginx:
+    image: nginx:local
     build: ./requirements/nginx
     networks:
       - custom
@@ -20,7 +29,9 @@ services:
       - wordpress
     volumes:
       - wp_data:/var/www/html:ro
+    restart: always
   wordpress:
+    image: wordpress:local
     build: ./requirements/wordpress
     networks:
       - custom
@@ -33,7 +44,9 @@ services:
     env_file:
       - .env
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
+    restart: always
 
 networks:
   custom:
@@ -55,12 +68,12 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /home/inicoara/data
+      device: /home/${USER}/data/mariadb
 
   wp_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /home/inicoara/data
+      device: /home/${USER}/data/wordpress
 

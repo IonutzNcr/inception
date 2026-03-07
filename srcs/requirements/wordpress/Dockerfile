@@ -34,9 +34,14 @@ RUN curl -o wp.tar.gz https://wordpress.org/latest.tar.gz \
 # PHP-FPM écoute sur 9000 (trouve le bon www.conf)
 RUN FPM_WWW_CONF="$(ls -1 /etc/php*/php-fpm.d/www.conf 2>/dev/null | head -n 1)" \
  && [ -n "$FPM_WWW_CONF" ] \
- && sed -i 's|^;listen = 127.0.0.1:9000|listen = 9000|' "$FPM_WWW_CONF" \
+ && sed -i 's|^listen = .*|listen = 9000|' "$FPM_WWW_CONF" \
  && sed -i 's|^user = nobody|user = www-data|' "$FPM_WWW_CONF" \
  && sed -i 's|^group = nobody|group = www-data|' "$FPM_WWW_CONF"
+
+# Increase PHP memory limit for WP-CLI
+RUN PHP_INI="$(ls -1 /etc/php*/php.ini 2>/dev/null | head -n 1)" \
+ && [ -n "$PHP_INI" ] \
+ && sed -i 's|^memory_limit.*|memory_limit = 256M|' "$PHP_INI"
 
 COPY script.sh /script.sh
 RUN chmod +x /script.sh
