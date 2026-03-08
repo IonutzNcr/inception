@@ -66,4 +66,26 @@ logs:
 ps:
 	@docker compose -f $(COMPOSE_FILE) ps
 
+status:
+	@echo "$(BLUE)Container status:$(RESET)"
+	@docker compose -f $(COMPOSE_FILE) ps
+	@echo "$(BLUE)Service health:$(RESET)"
+	@docker compose -f $(COMPOSE_FILE) ps --format "table {{.Service}}\t{{.Status}}"
+
+help:
+	@echo "$(BLUE)Available commands:$(RESET)"
+	@echo "  make        - Setup and start containers"
+	@echo "  make build  - Build Docker images"
+	@echo "  make up     - Start containers"
+	@echo "  make down   - Stop and remove containers"
+	@echo "  make stop   - Stop containers"
+	@echo "  make start  - Start existing containers"
+	@echo "  make restart- Restart all containers"
+	@echo "  make clean  - Remove containers, volumes, and images"
+	@echo "  make fclean - Full clean (includes data directories)"
+	@echo "  make re     - Rebuild from scratch"
+	@echo "  make logs   - Follow container logs"
+	@echo "  make ps     - List container status"
+	@echo "  make status - Show detailed service health"
+
 .PHONY: all build up down stop start restart clean fclean re logs ps status help

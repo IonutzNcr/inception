@@ -42,7 +42,12 @@ if [ ! -f wp-config.php ]; then
     --dbpass="$MYSQL_PASSWORD" \
     --dbhost="$MYSQL_HOST" \
     --allow-root
-   
+else
+  # Keep DB constants aligned with current env/secrets across restarts.
+  wp config set DB_NAME "$MARIA_DATABASE" --type=constant --allow-root
+  wp config set DB_USER "$MYSQL_USER" --type=constant --allow-root
+  wp config set DB_PASSWORD "$MYSQL_PASSWORD" --type=constant --allow-root
+  wp config set DB_HOST "$MYSQL_HOST" --type=constant --allow-root
 fi
 
 # installer WordPress

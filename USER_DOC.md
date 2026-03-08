@@ -162,7 +162,6 @@ All sensitive credentials are stored in the `secrets/` directory at the root of 
 
 ```
 secrets/
-├── credentials.txt           # General credentials file
 ├── db_password.txt           # MariaDB root password
 ├── db_user_password.txt      # WordPress database user password
 ├── wp_admin_password.txt     # WordPress admin password
@@ -253,8 +252,7 @@ make status
 
 This shows:
 - Container running status
-- Data directory contents
-- Docker images present
+- Service health state
 
 ### Viewing Container Logs
 

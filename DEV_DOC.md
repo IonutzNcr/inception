@@ -65,14 +65,6 @@ make --version
    openssl rand -base64 24 > secrets/db_user_password.txt
    openssl rand -base64 24 > secrets/wp_admin_password.txt
    openssl rand -base64 24 > secrets/wp_user_password.txt
-   
-   # Create credentials file (optional)
-   cat > secrets/credentials.txt << EOF
-   MariaDB Root: $(cat secrets/db_password.txt)
-   WordPress DB User: $(cat secrets/db_user_password.txt)
-   WP Admin: $(cat secrets/wp_admin_password.txt)
-   WP User: $(cat secrets/wp_user_password.txt)
-   EOF
    ```
 
 4. **Configure environment variables:**
@@ -81,15 +73,11 @@ make --version
    vim srcs/.env
    ```
 
-5. **Generate SSL certificates (already provided):**
+5. **TLS certificates:**
    ```bash
-   # If you need to regenerate certificates:
-   cd srcs/requirements/nginx
-   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-     -keyout inicoara.42.fr-key.pem \
-     -out inicoara.42.fr.pem \
-     -subj "/C=FR/ST=Paris/L=Paris/O=42/OU=42/CN=inicoara.42.fr" \
-     -addext "subjectAltName=DNS:inicoara.42.fr,DNS:www.inicoara.42.fr"
+   # Self-signed certificates are generated during nginx image build.
+   # Rebuild nginx if needed:
+   docker compose -f srcs/docker-compose.yml build nginx
    ```
 
 6. **Configure hosts file:**
@@ -111,7 +99,6 @@ inception/
 ├── DEV_DOC.md                      # This file
 ├── TODO.md                         # Project checklist
 ├── secrets/                        # Sensitive credentials (gitignored)
-│   ├── credentials.txt
 │   ├── db_password.txt
 │   ├── db_user_password.txt
 │   ├── wp_admin_password.txt
@@ -127,8 +114,7 @@ inception/
         ├── nginx/
         │   ├── Dockerfile          # NGINX image definition
         │   ├── nginx.conf          # NGINX configuration
-        │   ├── inicoara.42.fr.pem  # SSL certificate
-        │   └── inicoara.42.fr-key.pem  # SSL private key
+      │   └── (certificates generated during image build)
         └── wordpress/
             ├── Dockerfile          # WordPress image definition
             └── script.sh           # WordPress initialization script

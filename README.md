@@ -83,7 +83,6 @@ make fclean   # Complete cleanup including data
 .
 ├── Makefile                  # Build and management commands
 ├── secrets/                  # Sensitive credentials (gitignored)
-│   ├── credentials.txt
 │   ├── db_password.txt
 │   ├── db_user_password.txt
 │   ├── wp_admin_password.txt
@@ -99,8 +98,7 @@ make fclean   # Complete cleanup including data
         ├── nginx/            # NGINX container configuration
         │   ├── Dockerfile
         │   ├── nginx.conf
-        │   ├── inicoara.42.fr.pem
-        │   └── inicoara.42.fr-key.pem
+      │   └── (self-signed TLS certs are generated during image build)
         └── wordpress/        # WordPress container configuration
             ├── Dockerfile
             └── script.sh
