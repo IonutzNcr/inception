@@ -6,7 +6,7 @@ RUN apk add --no-cache nginx openssl \
  && mkdir -p /run/nginx /var/www /var/lib/nginx \
  && chown -R www-data:www-data /run/nginx /var/www /var/lib/nginx \
  && openssl req -x509 -nodes -newkey rsa:2048 -sha256 -days 365 \
-	-subj "/C=RO/ST=Bucharest/L=Bucharest/O=42/OU=Inception/CN=inicoara.42.fr" \
+	-subj "/C=RO/ST=France/L=Paris/O=42/OU=Inception/CN=inicoara.42.fr" \
 	-keyout /etc/nginx/inicoara.42.fr-key.pem \
 	-out /etc/nginx/inicoara.42.fr.pem
 

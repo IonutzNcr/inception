@@ -4,13 +4,11 @@ set -e
 DATADIR="/var/lib/mysql"
 RUNDIR="/run/mysqld"
 SOCK="$RUNDIR/mysqld.sock"
-PASSWORD="$(cat /run/secrets/db_psd)"
 USER_PASSWORD="$(cat /run/secrets/db_user_psd)"
 
 mkdir -p "$DATADIR" "$RUNDIR"
 chown -R mysql:mysql "$DATADIR" "$RUNDIR"
 
-# init si nécessaire
 if [ ! -d "$DATADIR/mysql" ]; then
   echo "Initializing MariaDB data directory..."
   mariadb-install-db --user=mysql --datadir="$DATADIR"
@@ -48,13 +46,7 @@ fi
 
 echo "Setting up database and users..."
 
-# Always ensure database and users exist with correct passwords
 mariadb -h localhost --socket="$SOCK" --skip-ssl -e "CREATE DATABASE IF NOT EXISTS $MARIA_DATABASE ;"
-
-# Drop and recreate users to ensure correct passwords
-mariadb -h localhost --socket="$SOCK" --skip-ssl -e "DROP USER IF EXISTS '$ADMIN_NAME'@'%';"
-mariadb -h localhost --socket="$SOCK" --skip-ssl -e "CREATE USER '$ADMIN_NAME'@'%' IDENTIFIED BY '$PASSWORD';"
-mariadb -h localhost --socket="$SOCK" --skip-ssl -e "GRANT ALL PRIVILEGES ON $MARIA_DATABASE.* TO '$ADMIN_NAME'@'%' ;"
 
 mariadb -h localhost --socket="$SOCK" --skip-ssl -e "DROP USER IF EXISTS '$MYSQL_USER'@'%';"
 mariadb -h localhost --socket="$SOCK" --skip-ssl -e "CREATE USER '$MYSQL_USER'@'%' IDENTIFIED BY '$USER_PASSWORD';"
@@ -72,8 +64,7 @@ wait "$pid" 2>/dev/null || true
 
 # relancer en foreground (PID 1)
 exec mariadbd --user=mysql --datadir="$DATADIR" \
-  --port=3306 --bind-address=0.0.0.0 \
-  --ssl=OFF
+  --port=3306 --bind-address=0.0.0.0
 
 
 

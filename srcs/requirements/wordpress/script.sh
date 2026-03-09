@@ -1,14 +1,12 @@
 #!/bin/sh
 set -e
 
-# NE PAS TOUCHER : secret lu depuis Docker secrets
 MYSQL_PASSWORD="$(cat /run/secrets/db_user_psd)"
 WP_ADMIN_PASSWORD="$(cat /run/secrets/wp_admin_psd)"
 WP_USER_PASSWORD="$(cat /run/secrets/wp_user_psd)"
 
-# (optionnel mais utile) éviter boucle infinie
 
-# Wait for MariaDB to be ready
+# Boucle pour attendre que MariaDB soit prêt avant de continuer
 echo "Waiting for MariaDB to be ready..."
 CONNECTED=0
 for i in $(seq 1 30); do
@@ -43,7 +41,7 @@ if [ ! -f wp-config.php ]; then
     --dbhost="$MYSQL_HOST" \
     --allow-root
 else
-  # Keep DB constants aligned with current env/secrets across restarts.
+  # Si wp-config.php existe déjà, s'assurer que les bonnes valeurs sont présentes
   wp config set DB_NAME "$MARIA_DATABASE" --type=constant --allow-root
   wp config set DB_USER "$MYSQL_USER" --type=constant --allow-root
   wp config set DB_PASSWORD "$MYSQL_PASSWORD" --type=constant --allow-root
@@ -66,8 +64,8 @@ else
   wp option update siteurl "$WP_URL" --allow-root
 fi
 
-# Créer le 2e user WordPress (exigé par le sujet)
-# Attendu: WP_USER, WP_USER_EMAIL, WP_USER_PASSWORD dans l'env
+
+# Cree author WP_USER, WP_USER_EMAIL, WP_USER_PASSWORD dans l'env
 if [ -n "$WP_USER" ] && [ -n "$WP_USER_EMAIL" ] && [ -n "$WP_USER_PASSWORD" ]; then
   if ! wp user get "$WP_USER" --allow-root >/dev/null 2>&1; then
     wp user create \
@@ -84,7 +82,7 @@ fi
 # permissions finales
 chown -R www-data:www-data /var/www/html
 
-# Find the correct php-fpm binary
+# Trouve le binaire php-fpm 
 PHP_FPM=$(which php-fpm* 2>/dev/null | head -n 1)
 if [ -z "$PHP_FPM" ]; then
   PHP_FPM=$(ls /usr/sbin/php-fpm* 2>/dev/null | head -n 1)
