@@ -1,6 +1,7 @@
 services:
   mariadb:
     image: mariadb:local
+    pull_policy: never
     build: ./requirements/mariadb
     env_file:
       - .env
@@ -20,6 +21,7 @@ services:
     restart: always
   nginx:
     image: nginx:local
+    pull_policy: never
     build: ./requirements/nginx
     networks:
       - custom
@@ -32,6 +34,7 @@ services:
     restart: always
   wordpress:
     image: wordpress:local
+    pull_policy: never
     build: ./requirements/wordpress
     networks:
       - custom

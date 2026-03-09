@@ -25,10 +25,23 @@ setup:
 	@echo "$(BLUE)Creating data directories...$(RESET)"
 	@mkdir -p $(MARIADB_PATH)
 	@mkdir -p $(WORDPRESS_PATH)
-	@echo "$(BLUE)Creating config placeholders...$(RESET)"
+	@echo "$(GREEN)✓ Directories created$(RESET)"
+
+secrets:
+	@echo "$(BLUE)Creating secrets and .env files (if missing)...$(RESET)"
 	@mkdir -p $(SECRETS_DIR)
-	@touch $(SECRET_FILES)
-	@if [ ! -s $(ENV_FILE) ]; then \
+	@for file in $(SECRET_FILES); do \
+		if [ -e "$$file" ]; then \
+			echo "$(YELLOW)• $$file already exists, skipping$(RESET)"; \
+		else \
+			touch "$$file"; \
+			echo "$(GREEN)✓ Created $$file$(RESET)"; \
+		fi; \
+	done
+	@mkdir -p $(dir $(ENV_FILE))
+	@if [ -e $(ENV_FILE) ]; then \
+		echo "$(YELLOW)• $(ENV_FILE) already exists, skipping$(RESET)"; \
+	else \
 		echo "$(YELLOW)Initializing $(ENV_FILE) template...$(RESET)"; \
 		printf '%s\n' \
 			'MARIA_DATABASE=' \
@@ -41,10 +54,10 @@ setup:
 			'WP_ADMIN_EMAIL=' \
 			'WP_USER=' \
 			'WP_USER_EMAIL=' > $(ENV_FILE); \
+		echo "$(GREEN)✓ Created $(ENV_FILE)$(RESET)"; \
 	fi
-	@echo "$(GREEN)✓ Directories created$(RESET)"
 
-check_config: setup
+check_config: setup secrets
 	@missing=0; \
 	for file in $(CONFIG_FILES); do \
 		if [ ! -s "$$file" ]; then \
@@ -96,6 +109,19 @@ restart: down up
 clean: down
 	@echo "$(RED)Cleaning Docker resources...$(RESET)"
 	@docker compose -f $(COMPOSE_FILE) down -v --rmi all
+	@echo "$(YELLOW)Removing secrets and env files...$(RESET)"
+	@for file in $(CONFIG_FILES); do \
+		if [ -e "$$file" ]; then \
+			rm -f "$$file"; \
+			echo "$(GREEN)✓ Removed $$file$(RESET)"; \
+		else \
+			echo "$(YELLOW)• $$file not found, skipping$(RESET)"; \
+		fi; \
+	done
+	@if [ -d $(SECRETS_DIR) ] && [ -z "$$(ls -A $(SECRETS_DIR) 2>/dev/null)" ]; then \
+		rmdir $(SECRETS_DIR); \
+		echo "$(GREEN)✓ Removed empty $(SECRETS_DIR)/ directory$(RESET)"; \
+	fi
 	@echo "$(GREEN)✓ Docker resources cleaned$(RESET)"
 
 fclean: clean
@@ -122,6 +148,7 @@ help:
 	@echo "$(BLUE)Available commands:$(RESET)"
 	@echo "  make        - Setup and start containers"
 	@echo "  make setup  - Create data folders and config placeholders"
+	@echo "  make secrets - Create only secrets/*.txt and srcs/.env if missing"
 	@echo "  make check_config - Validate srcs/.env and secrets are not empty"
 	@echo "  make build  - Build Docker images"
 	@echo "  make up     - Start containers"
@@ -129,11 +156,11 @@ help:
 	@echo "  make stop   - Stop containers"
 	@echo "  make start  - Start existing containers"
 	@echo "  make restart- Restart all containers"
-	@echo "  make clean  - Remove containers, volumes, and images"
+	@echo "  make clean  - Remove containers/resources + srcs/.env and secrets/*.txt"
 	@echo "  make fclean - Full clean (includes data directories)"
 	@echo "  make re     - Rebuild from scratch"
 	@echo "  make logs   - Follow container logs"
 	@echo "  make ps     - List container status"
 	@echo "  make status - Show detailed service health"
 
-.PHONY: all setup check_config build up down stop start restart clean fclean re logs ps status help
+.PHONY: all setup secrets check_config build up down stop start restart clean fclean re logs ps status help
