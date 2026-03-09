@@ -53,24 +53,29 @@ make --version
    cd inception
    ```
 
-2. **Create secrets directory:**
+2. **Create config placeholders (secrets + .env):**
    ```bash
-   mkdir -p secrets
+   make secrets
    ```
+   This creates missing files without overwriting existing values:
+   - `secrets/db_password.txt`
+   - `secrets/db_user_password.txt`
+   - `secrets/wp_admin_password.txt`
+   - `secrets/wp_user_password.txt`
+   - `srcs/.env`
 
-3. **Generate secrets:**
+3. **Fill generated files with real values:**
    ```bash
-   # Generate strong random passwords
-   openssl rand -base64 24 > secrets/db_password.txt
-   openssl rand -base64 24 > secrets/db_user_password.txt
-   openssl rand -base64 24 > secrets/wp_admin_password.txt
-   openssl rand -base64 24 > secrets/wp_user_password.txt
-   ```
-
-4. **Configure environment variables:**
-   ```bash
-   # Edit srcs/.env with your settings
    vim srcs/.env
+   vim secrets/db_password.txt
+   vim secrets/db_user_password.txt
+   vim secrets/wp_admin_password.txt
+   vim secrets/wp_user_password.txt
+   ```
+
+4. **Validate configuration before build/up:**
+   ```bash
+   make check_config
    ```
 
 5. **TLS certificates:**
@@ -198,13 +203,15 @@ The project uses a Makefile for all build and management operations:
 ```makefile
 make          # Complete setup: creates directories, builds, and starts
 make setup    # Create data directories only
+make secrets  # Create secrets/*.txt and srcs/.env if missing
+make check_config # Validate secrets and required env vars are non-empty
 make build    # Build Docker images
 make up       # Start containers (detached mode)
 make down     # Stop and remove containers
 make stop     # Stop containers (keep them)
 make start    # Start stopped containers
 make restart  # Restart all containers
-make clean    # Remove containers, volumes, images
+make clean    # Remove Docker resources + srcs/.env + secrets/*.txt
 make fclean   # Full clean including data directories
 make re       # Full rebuild (fclean + all)
 make logs     # View and follow logs
@@ -223,7 +230,23 @@ Creates:
 - `/home/inicoara/data/mariadb`
 - `/home/inicoara/data/wordpress`
 
-**2. Image Building:**
+**2. Config Placeholders and Validation:**
+```bash
+make secrets
+make check_config
+```
+`make check_config` fails if any required file is empty or if one of these variables is missing/empty in `srcs/.env`:
+- `MARIA_DATABASE`
+- `MYSQL_USER`
+- `MYSQL_HOST`
+- `WP_URL`
+- `WP_TITLE`
+- `WP_ADMIN`
+- `WP_ADMIN_EMAIL`
+- `WP_USER`
+- `WP_USER_EMAIL`
+
+**3. Image Building:**
 ```bash
 make build
 ```
@@ -232,7 +255,7 @@ Builds three Docker images:
 - `srcs-nginx` - Based on Alpine 3.22
 - `srcs-wordpress` - Based on Alpine 3.22
 
-**3. Container Launch:**
+**4. Container Launch:**
 ```bash
 make up
 ```
@@ -494,7 +517,6 @@ Internal ports (not exposed):
 MARIA_DATABASE=word_press
 MYSQL_USER=ionut
 MYSQL_HOST=mariadb
-ADMIN_NAME=TheBoss
 
 # WordPress
 WP_URL=https://inicoara.42.fr
@@ -633,19 +655,22 @@ server {
 # 1. Build and start
 make
 
-# 2. Check all containers are running
+# 2. Validate config explicitly (optional if using make/up/build)
+make check_config
+
+# 3. Check all containers are running
 make ps
 
-# 3. Test HTTPS access
+# 4. Test HTTPS access
 curl -k https://inicoara.42.fr
 
-# 4. Test WordPress login
+# 5. Test WordPress login
 curl -k -c cookies.txt -d "log=wpboss&pwd=$(cat secrets/wp_admin_password.txt)" https://inicoara.42.fr/wp-login.php
 
-# 5. Test database connection
+# 6. Test database connection
 docker exec wordpress mariadb -h mariadb -u ionut -p$(cat secrets/db_user_password.txt) word_press -e "SHOW TABLES;"
 
-# 6. Check data persistence
+# 7. Check data persistence
 docker compose -f srcs/docker-compose.yml down
 docker compose -f srcs/docker-compose.yml up -d
 curl -k https://inicoara.42.fr  # Should still work
@@ -677,6 +702,7 @@ sudo chown -R $(whoami):$(whoami) /home/inicoara/data/
 
 **Secret not found:**
 ```bash
+make secrets
 ls -la secrets/
 cat secrets/db_password.txt
 ```
