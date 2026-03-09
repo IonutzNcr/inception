@@ -1,6 +1,6 @@
 secrets/
 *.txt
-.env
+src/.env
 
 # Certificats SSL
 *.pem
