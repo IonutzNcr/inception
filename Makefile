@@ -3,6 +3,14 @@ COMPOSE_FILE	= srcs/docker-compose.yml
 DATA_PATH		= /home/$(USER)/data
 MARIADB_PATH	= $(DATA_PATH)/mariadb
 WORDPRESS_PATH	= $(DATA_PATH)/wordpress
+SECRETS_DIR	= secrets
+ENV_FILE		= srcs/.env
+SECRET_FILES	= $(SECRETS_DIR)/db_password.txt \
+		  $(SECRETS_DIR)/db_user_password.txt \
+		  $(SECRETS_DIR)/wp_user_password.txt \
+		  $(SECRETS_DIR)/wp_admin_password.txt
+CONFIG_FILES	= $(ENV_FILE) $(SECRET_FILES)
+ENV_REQUIRED_VARS = MARIA_DATABASE MYSQL_USER ADMIN_NAME MYSQL_HOST WP_URL WP_TITLE WP_ADMIN WP_ADMIN_EMAIL WP_USER WP_USER_EMAIL
 
 RESET		= \033[0m
 GREEN		= \033[32m
@@ -17,14 +25,52 @@ setup:
 	@echo "$(BLUE)Creating data directories...$(RESET)"
 	@mkdir -p $(MARIADB_PATH)
 	@mkdir -p $(WORDPRESS_PATH)
+	@echo "$(BLUE)Creating config placeholders...$(RESET)"
+	@mkdir -p $(SECRETS_DIR)
+	@touch $(SECRET_FILES)
+	@if [ ! -s $(ENV_FILE) ]; then \
+		echo "$(YELLOW)Initializing $(ENV_FILE) template...$(RESET)"; \
+		printf '%s\n' \
+			'MARIA_DATABASE=' \
+			'MYSQL_USER=' \
+			'ADMIN_NAME=' \
+			'MYSQL_HOST=' \
+			'WP_URL=' \
+			'WP_TITLE=' \
+			'WP_ADMIN=' \
+			'WP_ADMIN_EMAIL=' \
+			'WP_USER=' \
+			'WP_USER_EMAIL=' > $(ENV_FILE); \
+	fi
 	@echo "$(GREEN)✓ Directories created$(RESET)"
 
-build: setup
+check_config: setup
+	@missing=0; \
+	for file in $(CONFIG_FILES); do \
+		if [ ! -s "$$file" ]; then \
+			echo "$(RED)✗ Missing value in $$file$(RESET)"; \
+			missing=1; \
+		fi; \
+	done; \
+	for key in $(ENV_REQUIRED_VARS); do \
+		line=$$(grep -E "^$$key=" $(ENV_FILE) | head -n 1); \
+		value=$${line#*=}; \
+		if [ -z "$$line" ] || [ -z "$$value" ]; then \
+			echo "$(RED)✗ Empty env variable: $$key in $(ENV_FILE)$(RESET)"; \
+			missing=1; \
+		fi; \
+	done; \
+	if [ $$missing -eq 1 ]; then \
+		echo "$(YELLOW)Fill srcs/.env and secrets/*.txt before running docker compose.$(RESET)"; \
+		exit 1; \
+	fi
+
+build: check_config
 	@echo "$(BLUE)Building Docker images...$(RESET)"
 	@docker compose -f $(COMPOSE_FILE) build
 	@echo "$(GREEN)✓ Build complete$(RESET)"
 
-up: setup
+up: check_config
 	@echo "$(BLUE)Starting containers...$(RESET)"
 	@docker compose -f $(COMPOSE_FILE) up -d
 	@echo "$(GREEN)✓ Containers started$(RESET)"
@@ -40,7 +86,7 @@ stop:
 	@docker compose -f $(COMPOSE_FILE) stop
 	@echo "$(GREEN)✓ Containers stopped$(RESET)"
 
-start:
+start: check_config
 	@echo "$(BLUE)Starting existing containers...$(RESET)"
 	@docker compose -f $(COMPOSE_FILE) start
 	@echo "$(GREEN)✓ Containers started$(RESET)"
@@ -75,6 +121,8 @@ status:
 help:
 	@echo "$(BLUE)Available commands:$(RESET)"
 	@echo "  make        - Setup and start containers"
+	@echo "  make setup  - Create data folders and config placeholders"
+	@echo "  make check_config - Validate srcs/.env and secrets are not empty"
 	@echo "  make build  - Build Docker images"
 	@echo "  make up     - Start containers"
 	@echo "  make down   - Stop and remove containers"
@@ -88,4 +136,4 @@ help:
 	@echo "  make ps     - List container status"
 	@echo "  make status - Show detailed service health"
 
-.PHONY: all build up down stop start restart clean fclean re logs ps status help
+.PHONY: all setup check_config build up down stop start restart clean fclean re logs ps status help
