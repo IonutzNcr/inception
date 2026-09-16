@@ -243,7 +243,6 @@ See `USER_DOC.md` for detailed credential management instructions.
 
 - **[USER_DOC.md](USER_DOC.md)** - User and administrator guide
 - **[DEV_DOC.md](DEV_DOC.md)** - Developer documentation
-- **[TODO.md](TODO.md)** - Project checklist and requirements tracking
 
 ## License
 
